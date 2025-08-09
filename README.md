@@ -53,7 +53,7 @@ cd fun_games
 
 
 # Run
-Just open index.html in your browser
+[Just open index.html in your browser](https://gameinghub.vercel.app/)
 
 
 ### Project Documentation
