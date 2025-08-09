@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rock Paper Scissors</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #a8edea, #fed6e3);
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+    .basket {
+        background: #fff;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        text-align: center;
+        max-width: 500px;
+        width: 100%;
+        transition: transform 0.3s;
+    }
+    .basket:hover {
+        transform: scale(1.02);
+    }
+    h2 {
+        font-size: 2rem;
+        margin-bottom: 20px;
+        color: #333;
+    }
+    button {
+        font-size: 1.5rem;
+        padding: 15px 25px;
+        margin: 10px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        background: #4cafef;
+        color: white;
+        transition: background 0.3s, transform 0.2s;
+    }
+    button:hover {
+        background: #2196f3;
+        transform: scale(1.05);
+    }
+    #result {
+        font-size: 1.3rem;
+        margin-top: 20px;
+        min-height: 40px;
+        color: #444;
+    }
+    .hidden {
+        display: none;
+    }
+</style>
+</head>
+<body>
+
+<div class="basket">
+    <h2 id="title">Rock, Paper, Scissors</h2>
+    
+    <div id="startScreen">
+        <button onclick="startGame()">Start Game</button>
+    </div>
+    
+    <div id="gameScreen" class="hidden">
+        <button onclick="play('rock')">🪨 Rock</button>
+        <button onclick="play('paper')">📄 Paper</button>
+        <button onclick="play('scissors')">✂️ Scissors</button>
+        <p id="result"></p>
+        <button id="retryBtn" class="hidden" onclick="retryGame()">Retry</button>
+    </div>
+</div>
+
+<script>
+let gameStarted = false;
+
+function startGame() {
+    document.getElementById("startScreen").classList.add("hidden");
+    document.getElementById("gameScreen").classList.remove("hidden");
+    document.getElementById("title").textContent = "Choose Your Move";
+}
+
+function play(user) {
+    const choices = ["rock", "paper", "scissors"];
+    const comp = choices[Math.floor(Math.random() * 3)];
+    let result = "";
+    
+    if (user === comp) result = "It's a tie! 😐";
+    else if ((user === "rock" && comp === "scissors") ||
+             (user === "paper" && comp === "rock") ||
+             (user === "scissors" && comp === "paper"))
+        result = "You win! 🎉";
+    else
+        result = "You lose! 😢";
+    
+    document.getElementById("result").innerHTML = `Computer chose <b>${comp}</b>. ${result}`;
+    document.getElementById("retryBtn").classList.remove("hidden");
+}
+
+function retryGame() {
+    document.getElementById("result").innerHTML = "";
+    document.getElementById("retryBtn").classList.add("hidden");
+}
+</script>
+
+</body>
+</html>

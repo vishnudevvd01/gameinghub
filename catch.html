@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Catch the Ball</title>
+<style>
+    body {
+        margin: 0;
+        background: linear-gradient(135deg, #4facfe, #00f2fe);
+        font-family: Arial, sans-serif;
+        text-align: center;
+        color: white;
+    }
+    h2 {
+        padding: 10px;
+        text-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+    }
+    canvas {
+        display: block;
+        margin: 20px auto;
+        background: rgba(255,255,255,0.15);
+        border-radius: 15px;
+        box-shadow: 0px 4px 15px rgba(0,0,0,0.4);
+    }
+    button {
+        padding: 12px 28px;
+        font-size: 18px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 10px;
+        background: #43cea2;
+        color: white;
+        transition: all 0.3s ease;
+    }
+    button:hover {
+        background: #2bb673;
+    }
+</style>
+</head>
+<body>
+<h2>🏀 Catch the Ball</h2>
+<canvas id="gameCanvas" width="900" height="600"></canvas>
+<button id="startBtn" onclick="startGame()">Start Game</button>
+<button id="retryBtn" onclick="startGame()" style="display:none;">Retry</button>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let ballX, ballY, paddleX, score, speed;
+let paddleWidth = 150; // Bigger basket for laptop
+let paddleSpeed = 0;
+let gameRunning = false;
+let leftPressed = false;
+let rightPressed = false;
+
+document.addEventListener("keydown", e => {
+    if (!gameRunning) return;
+    if (e.key === "ArrowLeft") leftPressed = true;
+    if (e.key === "ArrowRight") rightPressed = true;
+});
+document.addEventListener("keyup", e => {
+    if (e.key === "ArrowLeft") leftPressed = false;
+    if (e.key === "ArrowRight") rightPressed = false;
+});
+
+function drawBall() {
+    let gradient = ctx.createRadialGradient(ballX, ballY, 2, ballX, ballY, 15);
+    gradient.addColorStop(0, "#ff9a9e");
+    gradient.addColorStop(1, "#ff6a88");
+    ctx.beginPath();
+    ctx.arc(ballX, ballY, 15, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+}
+
+function drawBasket() {
+    ctx.fillStyle = "#8B4513"; // Basket base
+    ctx.fillRect(paddleX, canvas.height - 40, paddleWidth, 25);
+    ctx.strokeStyle = "#5C3317";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(paddleX, canvas.height - 40, paddleWidth, 25);
+
+    ctx.strokeStyle = "#fff"; // Basket net
+    ctx.beginPath();
+    for (let i = paddleX; i < paddleX + paddleWidth; i += 10) {
+        ctx.moveTo(i, canvas.height - 40);
+        ctx.lineTo(i + 5, canvas.height - 15);
+    }
+    ctx.stroke();
+}
+
+function drawScore() {
+    ctx.fillStyle = "white";
+    ctx.font = "22px Arial";
+    ctx.fillText("Score: " + score, 20, 30);
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawBall();
+    drawBasket();
+    drawScore();
+
+    // Smooth movement
+    if (leftPressed && paddleX > 0) paddleX -= 6;
+    if (rightPressed && paddleX < canvas.width - paddleWidth) paddleX += 6;
+
+    ballY += speed;
+
+    if (ballY > canvas.height - 40 && ballX > paddleX && ballX < paddleX + paddleWidth) {
+        score++;
+        speed += 0.15; // Gradually harder
+        ballX = Math.random() * (canvas.width - 30) + 15;
+        ballY = 0;
+    }
+
+    if (ballY > canvas.height) {
+        gameRunning = false;
+        document.getElementById("retryBtn").style.display = "inline-block";
+        ctx.fillStyle = "white";
+        ctx.font = "28px Arial";
+        ctx.fillText("Game Over! Final Score: " + score, canvas.width / 2 - 150, canvas.height / 2);
+        return;
+    }
+
+    requestAnimationFrame(draw);
+}
+
+function startGame() {
+    score = 0;
+    speed = 2;
+    ballX = Math.random() * (canvas.width - 30) + 15;
+    ballY = 0;
+    paddleX = canvas.width / 2 - paddleWidth / 2;
+    document.getElementById("startBtn").style.display = "none";
+    document.getElementById("retryBtn").style.display = "none";
+    gameRunning = true;
+    draw();
+}
+
+// Start screen text
+ctx.fillStyle = "white";
+ctx.font = "28px Arial";
+ctx.fillText("Press Start to Play", canvas.width / 2 - 120, canvas.height / 2);
+</script>
+</body>
+</html>

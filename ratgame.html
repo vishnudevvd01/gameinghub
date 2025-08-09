@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Catch the Mouse</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #f0f0f0;
+      font-family: Arial, sans-serif;
+    }
+    #mouse {
+      width: 40px;
+      height: 40px;
+      background: url('asset/image/rat.webp') no-repeat center/cover;
+      position: absolute;
+      cursor: pointer;
+    }
+    #scoreboard {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      font-size: 20px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="mouse"></div>
+  <div id="scoreboard">Score: 0</div>
+
+  <script>
+    const mouse = document.getElementById('mouse');
+    const scoreboard = document.getElementById('scoreboard');
+    let score = 0;
+    let mouseX = 200, mouseY = 200;
+    let speed = 5;
+    let dodgeDistance = 80;
+
+    // Position the mouse initially
+    mouse.style.left = mouseX + 'px';
+    mouse.style.top = mouseY + 'px';
+
+    // Move the mouse randomly every frame
+    function moveMouse() {
+      mouseX += (Math.random() - 0.5) * speed * 2;
+      mouseY += (Math.random() - 0.5) * speed * 2;
+
+      // Keep inside screen
+      mouseX = Math.max(0, Math.min(window.innerWidth - 40, mouseX));
+      mouseY = Math.max(0, Math.min(window.innerHeight - 40, mouseY));
+
+      mouse.style.left = mouseX + 'px';
+      mouse.style.top = mouseY + 'px';
+      requestAnimationFrame(moveMouse);
+    }
+
+    // Mouse dodges when cursor is near
+    document.addEventListener('mousemove', (e) => {
+      let dx = e.clientX - mouseX;
+      let dy = e.clientY - mouseY;
+      let distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance < dodgeDistance) {
+        // Dodge away
+        mouseX += (dx > 0 ? -speed * 4 : speed * 4);
+        mouseY += (dy > 0 ? -speed * 4 : speed * 4);
+      }
+    });
+
+    // Catch the mouse
+    mouse.addEventListener('click', () => {
+      score++;
+      scoreboard.textContent = 'Score: ' + score;
+      // Teleport mouse to random place
+      mouseX = Math.random() * (window.innerWidth - 40);
+      mouseY = Math.random() * (window.innerHeight - 40);
+    });
+
+    moveMouse();
+  </script>
+</body>
+</html>

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Hard Car Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #111;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        #gameContainer {
+            text-align: center;
+        }
+        
+        canvas {
+            border: 2px solid #444;
+            background: #222;
+        }
+        
+        #ui {
+            margin-top: 10px;
+            font-size: 18px;
+        }
+        
+        #instructions {
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="instructions">
+            Use A/D or Arrow Keys to steer • Avoid obstacles • Survive as long as possible!
+        </div>
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <div id="ui">
+            <div>Score: <span id="score">0</span></div>
+            <div>Speed: <span id="speed">1</span></div>
+            <div id="gameOver" style="display:none; color: red; margin-top: 10px;">
+                Game Over! Press SPACE to restart
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let game = {
+            running: false,
+            score: 0,
+            speed: 1,
+            keys: {},
+            
+            car: {
+                x: canvas.width / 2 - 15,
+                y: canvas.height - 80,
+                width: 30,
+                height: 50,
+                speed: 5
+            },
+            
+            obstacles: [],
+            roadMarkings: []
+        };
+        
+        // Input handling
+        document.addEventListener('keydown', (e) => {
+            game.keys[e.key.toLowerCase()] = true;
+            if (e.key === ' ') {
+                e.preventDefault();
+                if (!game.running) startGame();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            game.keys[e.key.toLowerCase()] = false;
+        });
+        
+        function startGame() {
+            game.running = true;
+            game.score = 0;
+            game.speed = 1;
+            game.car.x = canvas.width / 2 - 15;
+            game.obstacles = [];
+            game.roadMarkings = [];
+            document.getElementById('gameOver').style.display = 'none';
+            
+            // Initialize road markings
+            for (let i = 0; i < 10; i++) {
+                game.roadMarkings.push({
+                    y: i * 80
+                });
+            }
+            
+            gameLoop();
+        }
+        
+        function update() {
+            if (!game.running) return;
+            
+            // Car movement with momentum-based controls (makes it harder)
+            if (game.keys['a'] || game.keys['arrowleft']) {
+                game.car.x -= game.car.speed;
+            }
+            if (game.keys['d'] || game.keys['arrowright']) {
+                game.car.x += game.car.speed;
+            }
+            
+            // Keep car on road (but with tight boundaries)
+            game.car.x = Math.max(20, Math.min(canvas.width - 50, game.car.x));
+            
+            // Update obstacles
+            for (let i = game.obstacles.length - 1; i >= 0; i--) {
+                game.obstacles[i].y += game.speed * 3;
+                
+                // Remove obstacles that are off screen
+                if (game.obstacles[i].y > canvas.height) {
+                    game.obstacles.splice(i, 1);
+                    game.score += 10;
+                }
+            }
+            
+            // Spawn obstacles (gets more frequent and complex over time)
+            if (Math.random() < 0.02 + game.speed * 0.01) {
+                spawnObstacle();
+            }
+            
+            // Update road markings
+            for (let marking of game.roadMarkings) {
+                marking.y += game.speed * 2;
+                if (marking.y > canvas.height) {
+                    marking.y = -80;
+                }
+            }
+            
+            // Increase difficulty over time
+            game.speed += 0.001;
+            
+            // Collision detection
+            for (let obstacle of game.obstacles) {
+                if (isColliding(game.car, obstacle)) {
+                    gameOver();
+                    return;
+                }
+            }
+            
+            updateUI();
+        }
+        
+        function spawnObstacle() {
+            const patterns = [
+                // Single obstacle
+                () => [{
+                    x: Math.random() * (canvas.width - 60) + 20,
+                    y: -50,
+                    width: 40,
+                    height: 40,
+                    color: '#ff4444'
+                }],
+                
+                // Two obstacles with gap
+                () => {
+                    const gap = 120;
+                    const leftX = Math.random() * (canvas.width - gap - 80) + 20;
+                    return [
+                        { x: leftX, y: -50, width: 40, height: 40, color: '#ff4444' },
+                        { x: leftX + gap, y: -50, width: 40, height: 40, color: '#ff4444' }
+                    ];
+                },
+                
+                // Moving obstacle
+                () => [{
+                    x: Math.random() * (canvas.width - 60) + 20,
+                    y: -50,
+                    width: 40,
+                    height: 40,
+                    color: '#ff8844',
+                    moveX: (Math.random() - 0.5) * 2
+                }]
+            ];
+            
+            const pattern = patterns[Math.floor(Math.random() * Math.min(patterns.length, Math.floor(game.speed) + 1))];
+            const obstacles = pattern();
+            
+            for (let obstacle of obstacles) {
+                game.obstacles.push(obstacle);
+            }
+        }
+        
+        function isColliding(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+        
+        function render() {
+            // Clear canvas
+            ctx.fillStyle = '#222';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw road
+            ctx.fillStyle = '#333';
+            ctx.fillRect(20, 0, canvas.width - 40, canvas.height);
+            
+            // Draw road markings
+            ctx.fillStyle = '#666';
+            for (let marking of game.roadMarkings) {
+                ctx.fillRect(canvas.width / 2 - 2, marking.y, 4, 40);
+            }
+            
+            // Draw car
+            drawCar(game.car.x, game.car.y);
+            
+            // Draw obstacles
+            for (let obstacle of game.obstacles) {
+                ctx.fillStyle = obstacle.color || '#ff4444';
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                
+                // Update moving obstacles
+                if (obstacle.moveX) {
+                    obstacle.x += obstacle.moveX;
+                    if (obstacle.x <= 20 || obstacle.x >= canvas.width - 60) {
+                        obstacle.moveX *= -1;
+                    }
+                }
+            }
+        }
+        
+        function drawCar(x, y) {
+            // Car body (main rectangle)
+            ctx.fillStyle = '#2196F3';
+            ctx.fillRect(x + 3, y + 10, 24, 35);
+            
+            // Car hood/front
+            ctx.fillStyle = '#1976D2';
+            ctx.fillRect(x + 5, y + 5, 20, 15);
+            
+            // Windshield
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(x + 7, y + 8, 16, 8);
+            
+            // Side windows
+            ctx.fillStyle = '#B0E0E6';
+            ctx.fillRect(x + 6, y + 20, 6, 8);
+            ctx.fillRect(x + 18, y + 20, 6, 8);
+            
+            // Wheels
+            ctx.fillStyle = '#333';
+            ctx.fillRect(x, y + 12, 6, 8);
+            ctx.fillRect(x + 24, y + 12, 6, 8);
+            ctx.fillRect(x, y + 32, 6, 8);
+            ctx.fillRect(x + 24, y + 32, 6, 8);
+            
+            // Wheel rims
+            ctx.fillStyle = '#666';
+            ctx.fillRect(x + 1, y + 14, 4, 4);
+            ctx.fillRect(x + 25, y + 14, 4, 4);
+            ctx.fillRect(x + 1, y + 34, 4, 4);
+            ctx.fillRect(x + 25, y + 34, 4, 4);
+            
+            // Headlights
+            ctx.fillStyle = '#FFFF99';
+            ctx.fillRect(x + 6, y + 2, 4, 3);
+            ctx.fillRect(x + 20, y + 2, 4, 3);
+            
+            // Rear lights
+            ctx.fillStyle = '#FF4444';
+            ctx.fillRect(x + 6, y + 45, 4, 3);
+            ctx.fillRect(x + 20, y + 45, 4, 3);
+        }
+        
+        function updateUI() {
+            document.getElementById('score').textContent = game.score;
+            document.getElementById('speed').textContent = game.speed.toFixed(1);
+        }
+        
+        function gameOver() {
+            game.running = false;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+        
+        function gameLoop() {
+            if (game.running) {
+                update();
+                render();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+        
+        // Initial render
+        render();
+    </script>
+</body>
+</html>

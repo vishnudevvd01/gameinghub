@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tic Tac Toe</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1100ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 30px;
+    }
+    h1 {
+      margin-bottom: 20px;
+      color: #ffffff;
+    }
+    #status {
+      margin-bottom: 16px;
+      font-size: 20px;
+      color: #ffffff;
+    }
+    .gameWrap {
+      position: relative;
+      width: 256px;
+      height: 256px;
+      margin-bottom: 16px;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 80px);
+      grid-template-rows: repeat(3, 80px);
+      gap: 8px;
+      width: 256px;
+      height: 256px;
+      background: transparent;
+      z-index: 1;
+    }
+    .square {
+      width: 80px;
+      height: 80px;
+      background: #fff;
+      border: 2px solid #333;
+      font-size: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      border-radius: 10px;
+      transition: background 0.15s;
+    }
+    .square:hover {
+      background: #f2ff00;
+    }
+    #strikeCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 2;
+    }
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      width: 100vw;
+      height: 100vh;
+      z-index: 5;
+    }
+    button {
+      padding: 8px 24px;
+      font-size: 18px;
+      border-radius: 6px;
+      border: 1px solid #007bff;
+      background: #007bff;
+      color: #fff;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    button:hover {
+      background: #0056b3;
+      border-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tic Tac Toe</h1>
+  <div id="status">Next Player: X</div>
+  <div class="gameWrap">
+    <div id="board"></div>
+    <canvas id="strikeCanvas" width="256" height="256"></canvas>
+  </div>
+  <button id="restartBtn">Restart Game</button>
+  <canvas id="confettiCanvas"></canvas>
+
+  <script>
+    const board = document.getElementById('board');
+    const status = document.getElementById('status');
+    const restartBtn = document.getElementById('restartBtn');
+    const strikeCanvas = document.getElementById('strikeCanvas');
+    const ctx = strikeCanvas.getContext('2d');
+    const SIZE = 3;
+    const CELL_SIZE = 80;
+    const CELL_GAP = 8;
+
+    let squares = Array(9).fill(null);
+    let xIsNext = true;
+    let gameActive = true;
+
+    function render() {
+      board.innerHTML = '';
+      squares.forEach((value, i) => {
+        const cell = document.createElement('div');
+        cell.className = 'square';
+        cell.textContent = value || '';
+        cell.addEventListener('click', () => handleMove(i));
+        board.appendChild(cell);
+      });
+    }
+
+    function getCellCenter(row, col) {
+      return {
+        x: col * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2,
+        y: row * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2
+      };
+    }
+
+    function drawStrike(startRow, startCol, endRow, endCol) {
+      ctx.clearRect(0, 0, strikeCanvas.width, strikeCanvas.height);
+      const start = getCellCenter(startRow, startCol);
+      const end = getCellCenter(endRow, endCol);
+      ctx.save();
+      ctx.strokeStyle = '#f00';
+      ctx.lineWidth = 7;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(start.x, start.y);
+      ctx.lineTo(end.x, end.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function clearStrike() {
+      ctx.clearRect(0, 0, strikeCanvas.width, strikeCanvas.height);
+    }
+
+    function handleMove(i) {
+      if (!gameActive || squares[i]) return;
+      squares[i] = xIsNext ? 'X' : 'O';
+      xIsNext = !xIsNext;
+      render();
+      checkWinner();
+      if (gameActive) {
+        status.textContent = `Next Player: ${xIsNext ? 'X' : 'O'}`;
+      }
+    }
+
+    function checkWinner() {
+      const lines = [
+        [0, 0, 0, 2, [0,1,2]],
+        [1, 0, 1, 2, [3,4,5]],
+        [2, 0, 2, 2, [6,7,8]],
+        [0, 0, 2, 0, [0,3,6]],
+        [0, 1, 2, 1, [1,4,7]],
+        [0, 2, 2, 2, [2,5,8]],
+        [0, 0, 2, 2, [0,4,8]],
+        [0, 2, 2, 0, [2,4,6]],
+      ];
+      for (const [startRow, startCol, endRow, endCol, inds] of lines) {
+        const [a,b,c] = inds;
+        if (
+          squares[a] &&
+          squares[a] === squares[b] &&
+          squares[a] === squares[c]
+        ) {
+          declareWinner(squares[a], startRow, startCol, endRow, endCol);
+          return;
+        }
+      }
+      if (squares.every(cell => cell)) {
+        status.textContent = "It's a Draw!";
+        gameActive = false;
+        clearStrike();
+        stopConfetti();
+      }
+    }
+
+    function declareWinner(player, startRow, startCol, endRow, endCol) {
+      status.textContent = `🎉 Winner: ${player}!`;
+      gameActive = false;
+      drawStrike(startRow, startCol, endRow, endCol);
+      startConfetti();
+    }
+
+    restartBtn.addEventListener('click', () => {
+      squares = Array(9).fill(null);
+      xIsNext = true;
+      gameActive = true;
+      status.textContent = 'Next Player: X';
+      clearStrike();
+      stopConfetti();
+      render();
+    });
+
+    render();
+
+    // Confetti
+    const confettiCanvas = document.getElementById('confettiCanvas');
+    const confettiCtx = confettiCanvas.getContext('2d');
+    let confettiParticles = [];
+    let confettiAnimationId = null;
+    const confettiColors = ['#FFC700', '#FF0000', '#2E3192', '#41BBC7', '#7F8C8D'];
+
+    function resizeConfettiCanvas() {
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeConfettiCanvas);
+    resizeConfettiCanvas();
+
+    function createConfettiParticle() {
+      return {
+        x: Math.random() * confettiCanvas.width,
+        y: Math.random() * -confettiCanvas.height,
+        size: 6 + Math.random() * 6,
+        color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+        speedY: 2 + Math.random() * 4,
+        rotation: Math.random() * 360,
+        rotationSpeed: (Math.random() - 0.5) * 10,
+      };
+    }
+
+    function initConfetti(count = 120) {
+      confettiParticles = [];
+      for(let i = 0; i < count; i++) {
+        confettiParticles.push(createConfettiParticle());
+      }
+    }
+
+    function updateConfetti() {
+      confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      confettiParticles.forEach(p => {
+        p.y += p.speedY;
+        p.rotation += p.rotationSpeed;
+        if(p.y > confettiCanvas.height) {
+          p.x = Math.random() * confettiCanvas.width;
+          p.y = Math.random() * -confettiCanvas.height;
+          p.speedY = 2 + Math.random() * 4;
+          p.rotation = Math.random() * 360;
+          p.rotationSpeed = (Math.random() - 0.5) * 10;
+        }
+        confettiCtx.save();
+        confettiCtx.translate(p.x, p.y);
+        confettiCtx.rotate(p.rotation * Math.PI / 180);
+        confettiCtx.fillStyle = p.color;
+        confettiCtx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+        confettiCtx.restore();
+      });
+    }
+
+    function animateConfetti() {
+      updateConfetti();
+      confettiAnimationId = requestAnimationFrame(animateConfetti);
+    }
+
+    function startConfetti() {
+      stopConfetti();
+      resizeConfettiCanvas();
+      initConfetti();
+      animateConfetti();
+    }
+
+    function stopConfetti() {
+      if (confettiAnimationId) {
+        cancelAnimationFrame(confettiAnimationId);
+        confettiAnimationId = null;
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      }
+    }
+  </script>
+</body>
+</html>
