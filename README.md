@@ -46,7 +46,7 @@ Tools required: Keyboard, mouse/touchpad, and a will to waste time
 For Software:
 # Installation
 # Clone the repo
-git clone https://github.com/vishnudevvd01/fun_games.git
+git clone [https://github.com/vishnudevvd01/fun_games.git](https://github.com/vishnudevvd01/gameinghub.git)
 
 # Open the folder
 cd fun_games
